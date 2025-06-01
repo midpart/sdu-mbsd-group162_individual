@@ -1,0 +1,127 @@
+grammar org.xtext.example.smarthome.SmartHome with org.eclipse.xtext.common.Terminals
+
+generate smartHome "http://www.xtext.org/example/smarthome/SmartHome"
+/*
+ * EBNF
+ * 
+Controller-> ‘SmartHomeController’ ID Room*
+
+Room →  ‘Room’ ID ‘where properties:’ Property*  Device*
+
+Device→ ‘Device’ ID ‘where properties:’ Property*  (Action)* 
+
+Action → ‘Action:’ ID* 
+
+Property –>   ID ':' Type (‘constraint’ exp)?
+
+exp→  exp AND exp | exp > exp | exp < exp
+
+Type →  BOOL | INTEGER | DOUBLE | STRING
+
+ * 
+ */
+
+Controller:
+	'SmartHomeController' name=ID ':' rooms+=Room* roomInheritance=RoomInheritance?
+;
+
+Room:
+	'Room' name=ID 'where' 'properties:' properties+=Property* (devices+=Device)* deviceInheritance=DeviceInheritance?
+;
+
+RoomInheritance:
+	'room' 'inheritance:' (inheritances+=RoomInheritanceDetails*)?
+;
+
+RoomInheritanceDetails:
+	roomChild=[Room] 'extends' 'from' roomParent=[Room]
+;
+
+DeviceInheritance:
+	'device' 'inheritance:' (inheritances+=DeviceInheritanceDetails*)?
+;
+
+DeviceInheritanceDetails:
+	deviceChild=[Device] 'extends' 'from' deviceParent=[Device]
+;
+
+Device:
+	'Device' name=ID 'where' 'properties:' properties+=Property* ('Actions:')?( actions+=Action)* ('constraints:')? (exp+=Exp)*
+;
+	
+Action:
+	'do' name=ID
+;
+
+Property:
+	(prType = PropertyType)? name=ID ':' type=Type
+	;
+
+DevProperty:
+	name=ID ':' type=Type
+;
+//Exp returns Expressin:
+//	Plus(
+//		{Plus.left=current} '+' right=Plus
+//	)*
+//;
+//Plus returns Expression:
+//	{MyNumber} value = INT |
+//	{VarRef} value = ID 
+//;
+//
+Exp returns Expression: BooleanExp;
+
+BooleanExp returns Expression:
+	AndCondition (
+		{AND.left=current} 'AND' right=AndCondition 
+	)*
+;
+
+AndCondition returns Expression:
+	Atomic (
+		{GT.left=current} '>' right=Atomic |
+		{LT.left=current} '<' right=Atomic 
+	)*
+;
+
+Atomic returns Expression:
+	{MyNumber} value = INT |
+	{VarRef} value = [Property] |
+	{Parenthesis} value = Parenthesis
+;
+
+Parenthesis returns Expression: 
+	"(" Exp ")"
+;
+
+Type:
+	name=("bool" | "integer" | "double" | "string")
+;
+
+PropertyType:
+	name=("private" | "public")
+;
+//
+//System:
+//	(system+=Defines)*;
+//
+//Defines:
+//	"define" (Entity | Inheritance) "where" properties+=Properties* relations+=Relations*;
+//
+//Entity:
+//	name=ID;
+//
+//Inheritance:
+//	name=ID 'as' inheritance=[Entity];
+//
+//Properties:
+//	name=ID ":" type=Type;
+//
+//Relations:
+//	("ADD" | "Add") mainEntity=[Entity] ("TO" | "to") relationEntity=[Entity];
+//
+//Type:
+//	name="BOOL" | "INTEGER" | "DOUBLE" | "STRING";
+
+ 
